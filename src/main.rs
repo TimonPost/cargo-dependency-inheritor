@@ -52,9 +52,9 @@ struct DependencyInherit {
     #[clap(short, long, value_parser)]
     workspace_path: PathBuf,
 
-    /// If a dependency is used throughout the workspace more then this value, add the 'workspace = true' key value to it.
+    /// If a dependency is used throughout the workspace more then 'n times', add the 'workspace = true' key value to it.
     #[clap(short, long, value_parser)]
-    occurrences: usize,
+    number: usize,
 }
 
 #[derive(Parser)]
@@ -91,7 +91,7 @@ fn main() {
                         .push(package.manifest_path.to_string());
 
                     // Store the package and the dependencies if more then the configured number of dependency occurrences are found.
-                    if detected_dependency.count >= args.occurrences {
+                    if detected_dependency.count >= args.number {
                         workspace_packages
                             .entry(&package.manifest_path)
                             .or_insert_with(|| HashSet::new())
@@ -164,7 +164,7 @@ fn main() {
 
             // Print the results.
             for (d, entry) in &duplicated_dependencies {
-                if entry.count >= args.occurrences {
+                if entry.count >= args.number {
                     println!("==== Dependency: '{d}' ({}) =====", entry.count);
 
                     for workspace_package in &entry.workspace_packages {
@@ -175,10 +175,10 @@ fn main() {
 
             if let Ok(toml_contents) = std::fs::read_to_string(args.workspace_path.clone()) {
                 if let Ok(mut doc) = toml_contents.parse::<Document>() {
-                    create_workspace_dependency_table(
+                    edit_workspace_dependency_table(
                         &mut doc,
                         &duplicated_dependencies,
-                        args.occurrences,
+                        args.number,
                     );
 
                     if let Err(_) = std::fs::write(args.workspace_path, doc.to_string()) {
@@ -194,23 +194,35 @@ fn main() {
     }
 }
 
-fn create_workspace_dependency_table(
+fn edit_workspace_dependency_table(
     document: &mut Document,
     workspace_deps: &HashMap<&String, Entry>,
     occurrences: usize,
 ) {
-    let mut new_table = Table::new();
-
-    for (key, val) in workspace_deps {
-        if val.count >= occurrences {
-            new_table.insert(
-                key,
-                Item::Value(Value::String(Formatted::new(val.version.clone()))),
-            );
+    // Crate table if not exist, otherwise edit.
+    if let Some(Item::Table(table)) = document.get_mut("workspace.dependencies") {
+        for (key, val) in workspace_deps {
+            if val.count >= occurrences && !table.contains_key(key.as_str()) {
+                table.insert(
+                    key,
+                    Item::Value(Value::String(Formatted::new(val.version.clone()))),
+                );
+            }
         }
-    }
+    } else {
+        let mut new_table = Table::new();
 
-    document.insert("workspace.dependencies", Item::Table(new_table));
+        for (key, val) in workspace_deps {
+            if val.count >= occurrences {
+                new_table.insert(
+                    key,
+                    Item::Value(Value::String(Formatted::new(val.version.clone()))),
+                );
+            }
+        }
+
+        document.insert("workspace.dependencies", Item::Table(new_table));
+    }
 }
 
 struct Entry {

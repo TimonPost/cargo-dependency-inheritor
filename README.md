@@ -9,21 +9,28 @@ See [workspace.package][1], [workspace.dependencies][2], and [inheriting-a-depen
 
 To inherit a dependency that occurs five or more times in the workspace, use the following command:
 
-```
-cargo dependency-inheritance --path "path/to/workspace/Cargo.toml" --occurences 5
+```bash
+cargo dependency-inheritance --path "path/to/workspace/Cargo.toml" --occurrences 5
 ```
 
 **This command edits your toml files, make sure to have a back up**
 
 ## Process
 
-1. Read packages defined in [workspace] section of workspace file. 
-2. Note which dependencies occur 'n' times.
-3. Update all dependencies that occured 'n' times by adding 'workspace=true' key-value.
-4. Add [workspace.dependencies] table to root workspace file with all the dependencies that occured 'n' times and their version.
+Dependencies can be inherited from a workspace by specifying the dependency in the workspace's [workspace.dependencies] table. After that, add it to the [dependencies] table with workspace = true.
+This crate automates the process.
 
-Rsult:
-```
+1. Read packages defined in [workspace] section of the workspace-file.
+2. Note which dependencies occur 'n' or more times.
+3. Update all dependencies that occurred 'n' or more times:
+   1. Turn 'dependency = "0.1.3"' into inline tables.
+   2. Add 'workspace=true' key-value to the dependency inline table.
+   3. Remove 'version' from inline table if exists (this will be specified in the workspace file).
+4. Add [workspace.dependencies] table to root workspace file with all the dependencies that occurred 'n' times and their version.
+
+Result:
+
+```toml
 // in a project
 [dependencies]
 tokio = { workspace = true }
