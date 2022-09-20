@@ -1,5 +1,5 @@
 [package]
-name = "cargo-dependency-inherit"
+name = "cargo-dependency-inheritor"
 version = "0.1.0"
 edition = "2021"
 
