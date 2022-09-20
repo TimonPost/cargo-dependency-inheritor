@@ -10,6 +10,7 @@ See [workspace.package][1], [workspace.dependencies][2], and [inheriting-a-depen
 To inherit a dependency that occurs five or more times in the workspace, use the following command:
 
 ```bash
+cargo install cargo-dependency-inheritor
 cargo dependency-inheritor --path "path/to/workspace/Cargo.toml" --occurrences 5
 ```
 
