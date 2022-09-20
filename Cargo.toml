@@ -2,8 +2,10 @@
 name = "cargo-dependency-inheritor"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT1 OR Apache-2.0"
+authors = ["T.Post"]
+description = "Utility that inherits dependencies from the main workspace if they occur 'n' or more times in the workspace."
+categories = ["command-line-utilities", "cargo"]
 
 [dependencies]
 cargo_metadata = "0.15.0"
