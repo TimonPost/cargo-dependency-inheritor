@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 cargo_metadata = "0.15.0"
-clap = {version="3.2.22", features=["derive"]}
+clap = { version="3.2.22", features=["derive"] }
 toml_edit = {  version = "0.14.4", default-features = true }
