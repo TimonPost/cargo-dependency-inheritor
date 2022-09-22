@@ -56,6 +56,18 @@ use toml_edit::{Document, Formatted, InlineTable, Item, Table, Value};
 
 use clap::{AppSettings, Parser};
 
+#[derive(clap::Args)]
+#[clap(author, version, about, long_about = None,global_setting(AppSettings::DeriveDisplayOrder) )]
+struct DependencyInheritor {
+    /// Full path to the `Cargo.toml` file that defines the rust workspace.
+    #[clap(short, long, value_parser)]
+    workspace_path: PathBuf,
+
+    /// If a dependency is used throughout the workspace more then 'n times', add the 'workspace = true' key value to it.
+    #[clap(short, long, value_parser)]
+    number: usize,
+}
+
 #[derive(Parser)]
 #[clap(bin_name = "cargo")]
 enum Cargo {
