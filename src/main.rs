@@ -79,6 +79,8 @@ fn main() {
         Cargo::DependencyInheritor(args) => {
             // Gather metadata on the workspace.
             let mut cmd = cargo_metadata::MetadataCommand::new();
+            let mut workspace_path = dunce::canonicalize(&args.workspace_path).unwrap();
+            assert!(workspace_path.pop());
             cmd.manifest_path(args.workspace_path.clone());
 
             let metadata = cmd.exec().unwrap();
@@ -89,11 +91,6 @@ fn main() {
 
             for package in metadata.workspace_packages() {
                 for package_dependency in &package.dependencies {
-                    // Skip local dependencies, typically pointing to other crates in the tree
-                    if package_dependency.path.is_some() {
-                        continue;
-                    }
-
                     let mut detected_dependency = duplicated_dependencies
                         .entry(&package_dependency.name)
                         .or_default();
@@ -103,6 +100,11 @@ fn main() {
                     detected_dependency
                         .workspace_packages
                         .push(package.manifest_path.to_string());
+
+                    detected_dependency.path = package_dependency
+                        .path
+                        .as_ref()
+                        .map(|path| path.strip_prefix(&workspace_path).unwrap().into());
 
                     // Store the package and the dependencies if more then the configured number of dependency occurrences are found.
                     if detected_dependency.count >= args.number {
@@ -145,14 +147,14 @@ fn main() {
                                 Value::InlineTable(table) => {
                                     // dependency specified as `dep = {version="x"}`.
 
+                                    table.insert("workspace", Value::from(true));
                                     table.remove("version");
-                                    table.insert("workspace", Value::Boolean(Formatted::new(true)));
+                                    table.remove("path");
                                 }
                                 Value::String(_) => {
                                     // dependency specified as `dep = "x"`
                                     let mut new_table = InlineTable::new();
-                                    new_table
-                                        .insert("workspace", Value::Boolean(Formatted::new(true)));
+                                    new_table.insert("workspace", Value::from(true));
 
                                     // preserve any line decoration such as comments.
                                     let decor = val.decor().clone();
@@ -217,10 +219,7 @@ fn edit_workspace_dependency_table(
     if let Some(Item::Table(table)) = document.get_mut("workspace.dependencies") {
         for (key, val) in workspace_deps {
             if val.count >= occurrences && !table.contains_key(key.as_str()) {
-                table.insert(
-                    key,
-                    Item::Value(Value::String(Formatted::new(val.version.clone()))),
-                );
+                table.insert(key, val.to_toml());
             }
         }
     } else {
@@ -228,10 +227,7 @@ fn edit_workspace_dependency_table(
 
         for (key, val) in workspace_deps {
             if val.count >= occurrences {
-                new_table.insert(
-                    key,
-                    Item::Value(Value::String(Formatted::new(val.version.clone()))),
-                );
+                new_table.insert(key, val.to_toml());
             }
         }
 
@@ -244,4 +240,20 @@ struct Entry {
     pub count: usize,
     pub workspace_packages: Vec<String>,
     pub version: String,
+    pub path: Option<PathBuf>,
+}
+
+impl Entry {
+    fn to_toml(&self) -> Item {
+        let version = Value::String(Formatted::new(self.version.clone()));
+
+        Item::Value(if let Some(path) = &self.path {
+            let mut itable = InlineTable::new();
+            itable.insert("path", Value::from(path.to_str().unwrap()));
+            itable.insert("version", version);
+            Value::InlineTable(itable)
+        } else {
+            version
+        })
+    }
 }
