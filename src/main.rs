@@ -19,7 +19,7 @@ use clap::{AppSettings, Parser};
 /// To inherit a dependency that occurs five or more times in the workspace, use the following command:
 ///
 /// ```
-/// cargo dependency-inheritance --path "path/to/workspace/Cargo.toml" --occurences 5
+/// cargo dependency-inheritor --workspace-path "path/to/workspace/Cargo.toml" --number 5
 /// ```
 ///
 /// **This command edits your toml files, make sure to have a back up**
@@ -46,8 +46,8 @@ use clap::{AppSettings, Parser};
 /// [2]: https://doc.rust-lang.org/nightly/cargo/reference/workspaces.html#the-workspacedependencies-table
 /// [3]: https://doc.rust-lang.org/nightly/cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace
 #[derive(clap::Args)]
-#[clap(author, version, about, long_about = None,global_setting(AppSettings::DeriveDisplayOrder) )]
-struct DependencyInherit {
+#[clap(author, version, about, long_about = None, global_setting(AppSettings::DeriveDisplayOrder))]
+struct DependencyInheritor {
     /// Full path to the `Cargo.toml` file that defines the rust workspace.
     #[clap(short, long, value_parser)]
     workspace_path: PathBuf,
@@ -58,16 +58,15 @@ struct DependencyInherit {
 }
 
 #[derive(Parser)]
-#[clap(name = "cargo")]
 #[clap(bin_name = "cargo")]
 enum Cargo {
-    DependencyInherit(DependencyInherit),
+    DependencyInheritor(DependencyInheritor),
 }
 
 fn main() {
     let args = Cargo::parse();
     match args {
-        Cargo::DependencyInherit(args) => {
+        Cargo::DependencyInheritor(args) => {
             // Gather metadata on the workspace.
             let mut cmd = cargo_metadata::MetadataCommand::new();
             cmd.manifest_path(args.workspace_path.clone());
