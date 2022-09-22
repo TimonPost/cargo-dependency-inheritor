@@ -89,6 +89,11 @@ fn main() {
 
             for package in metadata.workspace_packages() {
                 for package_dependency in &package.dependencies {
+                    // Skip local dependencies, typically pointing to other crates in the tree
+                    if package_dependency.path.is_some() {
+                        continue;
+                    }
+
                     let mut detected_dependency = duplicated_dependencies
                         .entry(&package_dependency.name)
                         .or_default();
