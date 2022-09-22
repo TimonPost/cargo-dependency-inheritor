@@ -50,7 +50,6 @@
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
-    vec,
 };
 use toml_edit::{Document, Formatted, InlineTable, Item, Table, Value};
 
@@ -85,14 +84,14 @@ fn main() {
             let metadata = cmd.exec().unwrap();
 
             // Gather all dependencies that occur more then the configured number of times throughout the workspace.
-            let mut duplicated_dependencies = HashMap::new();
-            let mut workspace_packages = HashMap::new();
+            let mut duplicated_dependencies = HashMap::<&String, Entry>::new();
+            let mut workspace_packages = HashMap::<_, HashSet<_>>::new();
 
             for package in metadata.workspace_packages() {
                 for package_dependency in &package.dependencies {
                     let mut detected_dependency = duplicated_dependencies
                         .entry(&package_dependency.name)
-                        .or_insert(Entry::default());
+                        .or_default();
 
                     detected_dependency.version = package_dependency.req.to_string();
                     detected_dependency.count += 1;
@@ -104,7 +103,7 @@ fn main() {
                     if detected_dependency.count >= args.number {
                         workspace_packages
                             .entry(&package.manifest_path)
-                            .or_insert_with(|| HashSet::new())
+                            .or_default()
                             .insert(package_dependency.name.clone());
                     }
                 }
@@ -167,8 +166,8 @@ fn main() {
                     }
                 }
 
-                if let Err(_) = std::fs::write(package_toml, toml_document.to_string()) {
-                    println!("Failed to write: {:?}", package_toml);
+                if let Err(e) = std::fs::write(package_toml, toml_document.to_string()) {
+                    eprintln!("Failed to write to {:?}: {:?}", package_toml, e);
                 }
             }
 
@@ -191,8 +190,8 @@ fn main() {
                         args.number,
                     );
 
-                    if let Err(_) = std::fs::write(args.workspace_path, doc.to_string()) {
-                        println!("Failed to write");
+                    if let Err(e) = std::fs::write(&args.workspace_path, doc.to_string()) {
+                        eprintln!("Failed to write to {:?}: {:?}", args.workspace_path, e);
                     }
                 } else {
                     println!("failed to parse workspace definition");
@@ -235,18 +234,9 @@ fn edit_workspace_dependency_table(
     }
 }
 
+#[derive(Default)]
 struct Entry {
     pub count: usize,
     pub workspace_packages: Vec<String>,
     pub version: String,
-}
-
-impl Default for Entry {
-    fn default() -> Self {
-        Self {
-            count: 0,
-            workspace_packages: vec![],
-            version: String::new(),
-        }
-    }
 }
