@@ -100,6 +100,8 @@ fn main() {
                     detected_dependency
                         .workspace_packages
                         .push(package.manifest_path.to_string());
+                    detected_dependency.no_default_features |=
+                        !package_dependency.uses_default_features;
 
                     detected_dependency.path = package_dependency
                         .path
@@ -241,16 +243,23 @@ struct Entry {
     pub workspace_packages: Vec<String>,
     pub version: String,
     pub path: Option<PathBuf>,
+    /// Whether _any_ package uses this crate with the default features _enabled_
+    pub no_default_features: bool,
 }
 
 impl Entry {
     fn to_toml(&self) -> Item {
         let version = Value::String(Formatted::new(self.version.clone()));
 
-        Item::Value(if let Some(path) = &self.path {
+        Item::Value(if self.no_default_features || self.path.is_some() {
             let mut itable = InlineTable::new();
-            itable.insert("path", Value::from(path.to_str().unwrap()));
             itable.insert("version", version);
+            if let Some(path) = &self.path {
+                itable.insert("path", Value::from(path.to_str().unwrap()));
+            }
+            if self.no_default_features {
+                itable.insert("default-features", Value::from(false));
+            }
             Value::InlineTable(itable)
         } else {
             version
