@@ -231,7 +231,7 @@ fn edit_workspace_dependency_table(
             }
         }
 
-        document.insert("workspace.dependencies", Item::Table(new_table));
+        document["workspace"]["dependencies"] = Item::Table(new_table);
     }
 }
 
