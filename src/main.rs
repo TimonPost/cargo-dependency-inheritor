@@ -193,16 +193,16 @@ fn main() {
                 }
             }
 
-            // // Print the results.
-            // for (d, entry) in &duplicated_dependencies {
-            //     if entry.count >= args.number {
-            //         println!("==== Dependency: '{d}' ({}) =====", entry.count);
+            // Print the results.
+            for (d, entry) in &duplicated_dependencies {
+                if entry.count >= args.number {
+                    println!("==== Dependency: '{d}' ({}) =====", entry.count);
 
-            //         for workspace_package in &entry.workspace_packages {
-            //             println!("  - {workspace_package}");
-            //         }
-            //     }
-            // }
+                    for workspace_package in &entry.workspace_packages {
+                        println!("  - {workspace_package}");
+                    }
+                }
+            }
 
             if let Ok(toml_contents) = std::fs::read_to_string(args.workspace_path.clone()) {
                 if let Ok(mut doc) = toml_contents.parse::<Document>() {
