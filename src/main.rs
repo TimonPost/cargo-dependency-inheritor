@@ -65,6 +65,11 @@ struct DependencyInheritor {
     /// If a dependency is used throughout the workspace more then 'n times', add the 'workspace = true' key value to it.
     #[clap(short, long, value_parser)]
     number: usize,
+
+    /// Exclude workspace packages from being processed.
+    /// Provide the package name as it is defined in by: `[package] name="x"`
+    #[clap(long, value_parser)]
+    exclude_packages: Vec<String>,
 }
 
 #[derive(Parser)]
@@ -81,15 +86,23 @@ fn main() {
             let mut cmd = cargo_metadata::MetadataCommand::new();
             let mut workspace_path = dunce::canonicalize(&args.workspace_path).unwrap();
             assert!(workspace_path.pop());
+
             cmd.manifest_path(args.workspace_path.clone());
 
             let metadata = cmd.exec().unwrap();
+
+            let exclude_packages: HashSet<String> =
+                HashSet::from_iter(args.exclude_packages.into_iter());
 
             // Gather all dependencies that occur more then the configured number of times throughout the workspace.
             let mut duplicated_dependencies = HashMap::<&String, Entry>::new();
             let mut workspace_packages = HashMap::<_, HashSet<_>>::new();
 
             for package in metadata.workspace_packages() {
+                if exclude_packages.contains(&package.name) {
+                    continue;
+                }
+
                 for package_dependency in &package.dependencies {
                     let mut detected_dependency = duplicated_dependencies
                         .entry(&package_dependency.name)
