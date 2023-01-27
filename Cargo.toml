@@ -9,6 +9,6 @@ categories = ["command-line-utilities", "cargo"]
 
 [dependencies]
 cargo_metadata = "0.15.0"
-clap = { version="3.2.22", features=["derive"] }
+clap = { version="4.1.4", features=["derive"] }
 dunce = "1"
-toml_edit = {  version = "0.14.4", default-features = true }
+toml_edit = {  version = "0.18.0", default-features = true }

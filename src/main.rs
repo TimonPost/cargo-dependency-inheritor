@@ -51,12 +51,12 @@ use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
 };
+
+use clap::Parser;
 use toml_edit::{Document, Formatted, InlineTable, Item, Table, Value};
 
-use clap::{AppSettings, Parser};
-
-#[derive(clap::Args)]
-#[clap(author, version, about, long_about = None,global_setting(AppSettings::DeriveDisplayOrder) )]
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
 struct DependencyInheritor {
     /// Full path to the `Cargo.toml` file that defines the rust workspace.
     #[clap(short, long, value_parser)]
