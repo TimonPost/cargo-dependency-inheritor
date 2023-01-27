@@ -156,8 +156,10 @@ fn main() {
 
                         match val {
                             Item::None => todo!(),
-                            Item::Table(_) => {
-                                // TODO
+                            Item::Table(table) => {
+                                table.insert("workspace", Item::Value(Value::from(true)));
+                                table.remove("version");
+                                table.remove("path");
                             }
                             Item::ArrayOfTables(_) => todo!(),
                             Item::Value(val) => match val {
