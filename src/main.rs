@@ -193,7 +193,7 @@ fn main() {
                 }
 
                 if let Err(e) = std::fs::write(package_toml, toml_document.to_string()) {
-                    eprintln!("Failed to write to {:?}: {:?}", package_toml, e);
+                    eprintln!("Failed to write to {package_toml:?}: {e:?}");
                 }
             }
 
