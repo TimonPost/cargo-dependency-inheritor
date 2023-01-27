@@ -48,7 +48,7 @@
 //! [3]: https://doc.rust-lang.org/nightly/cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     path::PathBuf,
 };
 use toml_edit::{Document, Formatted, InlineTable, Item, Table, Value};
@@ -95,7 +95,7 @@ fn main() {
                 HashSet::from_iter(args.exclude_packages.into_iter());
 
             // Gather all dependencies that occur more then the configured number of times throughout the workspace.
-            let mut duplicated_dependencies = HashMap::<&String, Entry>::new();
+            let mut duplicated_dependencies = BTreeMap::<&String, Entry>::new();
             let mut workspace_packages = HashMap::<_, HashSet<_>>::new();
 
             for package in metadata.workspace_packages() {
@@ -227,7 +227,7 @@ fn main() {
 
 fn edit_workspace_dependency_table(
     document: &mut Document,
-    workspace_deps: &HashMap<&String, Entry>,
+    workspace_deps: &BTreeMap<&String, Entry>,
     occurrences: usize,
 ) {
     // Crate table if not exist, otherwise edit.
