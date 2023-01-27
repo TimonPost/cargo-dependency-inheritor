@@ -48,7 +48,7 @@
 //! [3]: https://doc.rust-lang.org/nightly/cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     path::PathBuf,
 };
 
@@ -96,7 +96,6 @@ fn main() {
 
             // Gather all dependencies that occur more then the configured number of times throughout the workspace.
             let mut duplicated_dependencies = BTreeMap::<&String, Entry>::new();
-            let mut workspace_packages = HashMap::<_, HashSet<_>>::new();
 
             for package in metadata.workspace_packages() {
                 if exclude_packages.contains(&package.name) {
@@ -120,19 +119,18 @@ fn main() {
                         .path
                         .as_ref()
                         .map(|path| path.strip_prefix(&workspace_path).unwrap().into());
-
-                    // Store the package and the dependencies if more then the configured number of dependency occurrences are found.
-                    if detected_dependency.count >= args.number {
-                        workspace_packages
-                            .entry(&package.manifest_path)
-                            .or_default()
-                            .insert(package_dependency.name.clone());
-                    }
                 }
             }
 
+            let dependency_candidates = duplicated_dependencies
+                .iter()
+                .filter(|(_, dep)| dep.count >= args.number)
+                .map(|(&name, _)| name.to_owned())
+                .collect();
+
             // Update the toml definition of the workspace. And add the new 'workspace = true' key value pair.
-            for (package_toml, dependency_candidates) in workspace_packages {
+            for package in metadata.workspace_packages() {
+                let package_toml = &package.manifest_path;
                 let toml_contents = if let Ok(doc) = std::fs::read_to_string(package_toml) {
                     doc
                 } else {
