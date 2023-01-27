@@ -267,10 +267,11 @@ struct Entry {
 impl Entry {
     fn to_toml(&self) -> Item {
         let version = Value::String(Formatted::new(self.version.clone()));
-
         Item::Value(if self.no_default_features || self.path.is_some() {
             let mut itable = InlineTable::new();
-            itable.insert("version", version);
+            if self.version != "*" {
+                itable.insert("version", version);
+            }
             if let Some(path) = &self.path {
                 itable.insert("path", Value::from(path.to_str().unwrap()));
             }
