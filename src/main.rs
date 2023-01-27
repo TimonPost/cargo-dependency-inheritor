@@ -144,46 +144,50 @@ fn main() {
                     continue;
                 };
 
-                // Fetch the dependency table from the workspace package toml document.
-                if let Some(Item::Table(dependency_table)) = toml_document.get_mut("dependencies") {
-                    // Iterate all packages with deps that ocurred more then the configured number times.
-                    for (key, val) in dependency_table.iter_mut() {
-                        if !dependency_candidate.contains(key.get()) {
-                            continue;
-                        }
-
-                        match val {
-                            Item::None => todo!(),
-                            Item::Table(_) => {
-                                // TODO
+                for dependency_type in ["dependencies", "dev-dependencies", "build-dependencies"] {
+                    // Fetch the dependency table from the workspace package toml document.
+                    if let Some(Item::Table(dependency_table)) =
+                        toml_document.get_mut(dependency_type)
+                    {
+                        // Iterate all packages with deps that ocurred more then the configured number times.
+                        for (key, val) in dependency_table.iter_mut() {
+                            if !dependency_candidate.contains(key.get()) {
+                                continue;
                             }
-                            Item::ArrayOfTables(_) => todo!(),
-                            Item::Value(val) => match val {
-                                Value::InlineTable(table) => {
-                                    // dependency specified as `dep = {version="x"}`.
 
-                                    table.insert("workspace", Value::from(true));
-                                    table.remove("version");
-                                    table.remove("path");
+                            match val {
+                                Item::None => todo!(),
+                                Item::Table(_) => {
+                                    // TODO
                                 }
-                                Value::String(_) => {
-                                    // dependency specified as `dep = "x"`
-                                    let mut new_table = InlineTable::new();
-                                    new_table.insert("workspace", Value::from(true));
+                                Item::ArrayOfTables(_) => todo!(),
+                                Item::Value(val) => match val {
+                                    Value::InlineTable(table) => {
+                                        // dependency specified as `dep = {version="x"}`.
 
-                                    // preserve any line decoration such as comments.
-                                    let decor = val.decor().clone();
-                                    *val = Value::InlineTable(new_table);
-                                    *val.decor_mut() = decor;
-                                }
-                                Value::Integer(_)
-                                | Value::Float(_)
-                                | Value::Boolean(_)
-                                | Value::Datetime(_)
-                                | Value::Array(_) => {
-                                    // dependency not specified in those forms.
-                                }
-                            },
+                                        table.insert("workspace", Value::from(true));
+                                        table.remove("version");
+                                        table.remove("path");
+                                    }
+                                    Value::String(_) => {
+                                        // dependency specified as `dep = "x"`
+                                        let mut new_table = InlineTable::new();
+                                        new_table.insert("workspace", Value::from(true));
+
+                                        // preserve any line decoration such as comments.
+                                        let decor = val.decor().clone();
+                                        *val = Value::InlineTable(new_table);
+                                        *val.decor_mut() = decor;
+                                    }
+                                    Value::Integer(_)
+                                    | Value::Float(_)
+                                    | Value::Boolean(_)
+                                    | Value::Datetime(_)
+                                    | Value::Array(_) => {
+                                        // dependency not specified in those forms.
+                                    }
+                                },
+                            }
                         }
                     }
                 }
