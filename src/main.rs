@@ -292,11 +292,11 @@ impl Entry {
         let version = Value::String(Formatted::new(self.version.clone()));
         Item::Value(if self.no_default_features || self.path.is_some() {
             let mut itable = InlineTable::new();
-            if self.version != "*" {
+            if self.version != "*" && self.path.is_none() {
                 itable.insert("version", version);
             }
             if let Some(path) = &self.path {
-                itable.insert("path", Value::from(path.to_str().unwrap()));
+                itable.insert("path", path.to_str().unwrap().into());
             }
             if self.no_default_features {
                 itable.insert("default-features", Value::from(false));
