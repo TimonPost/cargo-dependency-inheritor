@@ -55,7 +55,7 @@ use std::{
 use clap::Parser;
 use toml_edit::{Document, Formatted, InlineTable, Item, Table, Value};
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[clap(author, version, about, long_about = None)]
 struct DependencyInheritor {
     /// Full path to the `Cargo.toml` file that defines the rust workspace.
@@ -70,6 +70,9 @@ struct DependencyInheritor {
     /// Provide the package name as it is defined in by: `[package] name="x"`
     #[clap(long, value_parser)]
     exclude_packages: Vec<String>,
+
+  #[clap(long, value_parser)]
+    replace_all_path_deps: bool,
 }
 
 #[derive(Parser)]
@@ -92,7 +95,7 @@ fn main() {
             let metadata = cmd.exec().unwrap();
 
             let exclude_packages: HashSet<String> =
-                HashSet::from_iter(args.exclude_packages.into_iter());
+                HashSet::from_iter(args.exclude_packages.clone().into_iter());
 
             // Gather all dependencies that occur more then the configured number of times throughout the workspace.
             let mut duplicated_dependencies = BTreeMap::<&String, Entry>::new();
@@ -124,7 +127,7 @@ fn main() {
 
             let dependency_candidates = duplicated_dependencies
                 .iter()
-                .filter(|(_, dep)| dep.count >= args.number)
+                .filter(|(_, dep)|  process_dependency(&args,*dep))
                 .map(|(&name, _)| name.to_owned())
                 .collect();
 
@@ -215,7 +218,7 @@ fn main() {
 
             // Print the results.
             for (d, entry) in &duplicated_dependencies {
-                if entry.count >= args.number {
+                if process_dependency(&args,entry) {
                     println!("==== Dependency: '{d}' ({}) =====", entry.count);
 
                     for workspace_package in &entry.workspace_packages {
@@ -229,7 +232,7 @@ fn main() {
                     edit_workspace_dependency_table(
                         &mut doc,
                         &duplicated_dependencies,
-                        args.number,
+                        &args,
                     );
 
                     if let Err(e) = std::fs::write(&args.workspace_path, doc.to_string()) {
@@ -245,15 +248,19 @@ fn main() {
     }
 }
 
+fn process_dependency(args: &DependencyInheritor, entry: &Entry ) -> bool {
+    entry.count >= args.number || (entry.path.is_some() && args.replace_all_path_deps)
+}
+
 fn edit_workspace_dependency_table(
     document: &mut Document,
     workspace_deps: &BTreeMap<&String, Entry>,
-    occurrences: usize,
+    args: &DependencyInheritor
 ) {
     // Crate table if not exist, otherwise edit.
     if let Some(Item::Table(table)) = document.get_mut("workspace.dependencies") {
         for (key, val) in workspace_deps {
-            if val.count >= occurrences && !table.contains_key(key.as_str()) {
+            if process_dependency(args, val) && !table.contains_key(key.as_str()) {
                 table.insert(key, val.to_toml());
             }
         }
@@ -261,7 +268,7 @@ fn edit_workspace_dependency_table(
         let mut new_table = Table::new();
 
         for (key, val) in workspace_deps {
-            if val.count >= occurrences {
+            if process_dependency(args, val) {
                 new_table.insert(key, val.to_toml());
             }
         }
@@ -285,11 +292,11 @@ impl Entry {
         let version = Value::String(Formatted::new(self.version.clone()));
         Item::Value(if self.no_default_features || self.path.is_some() {
             let mut itable = InlineTable::new();
-            if self.version != "*" {
+            if self.version != "*" && self.path.is_none() {
                 itable.insert("version", version);
             }
             if let Some(path) = &self.path {
-                itable.insert("path", Value::from(path.to_str().unwrap()));
+                itable.insert("path", path.to_str().unwrap().into());
             }
             if self.no_default_features {
                 itable.insert("default-features", Value::from(false));
